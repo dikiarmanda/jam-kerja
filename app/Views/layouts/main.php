@@ -19,6 +19,7 @@
         </a>
         <div class="flex items-center gap-1">
             <a href="<?= base_url('/') ?>" class="nav-link"><i class="fa-solid fa-folder-open" style="font-size:0.8125rem;margin-right:5px;"></i>Proyek</a>
+            <a href="<?= base_url('sessions') ?>" class="nav-link"><i class="fa-solid fa-clock-rotate-left" style="font-size:0.8125rem;margin-right:5px;"></i>Sesi</a>
             <a href="<?= base_url('tags') ?>" class="nav-link"><i class="fa-solid fa-tags" style="font-size:0.8125rem;margin-right:5px;"></i>Tag</a>
             <a href="<?= base_url('projects/create') ?>" class="btn btn-primary" style="padding:6px 14px;font-size:0.8125rem;margin-left:8px;">
                 <i class="fa-solid fa-plus"></i>Proyek baru

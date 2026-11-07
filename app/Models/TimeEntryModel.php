@@ -18,6 +18,20 @@ class TimeEntryModel extends Model
         return $this->where('ended_at IS NULL', null, false)->first();
     }
 
+    public function getEntriesWithProject(?int $projectId = null): array
+    {
+        $builder = $this->db->table('time_entries te')
+            ->select('te.*, p.name AS project_name, p.hourly_rate')
+            ->join('projects p', 'p.id = te.project_id')
+            ->orderBy('te.started_at', 'DESC');
+
+        if ($projectId) {
+            $builder->where('te.project_id', $projectId);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
     public function stopEntry(int $id): void
     {
         $entry = $this->find($id);

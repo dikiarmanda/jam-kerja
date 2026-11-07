@@ -46,15 +46,23 @@ $activeEntry = $project['active_entry'] ?? null;
     </div>
 </div>
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-    <h2 style="font-size:0.9375rem;font-weight:600;color:var(--text);">Riwayat sesi</h2>
-    <span style="font-size:0.8125rem;color:var(--dim);"><?= count($project['entries']) ?> sesi</span>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <h2 style="font-size:0.9375rem;font-weight:600;color:var(--text);margin:0;">Riwayat sesi</h2>
+        <span style="font-size:0.8125rem;color:var(--dim);"><?= count($project['entries']) ?> sesi</span>
+    </div>
+    <a href="<?= base_url('sessions/create?project_id=' . $project['id']) ?>" class="btn btn-ghost btn-sm">
+        <i class="fa-solid fa-plus"></i>Tambah sesi manual
+    </a>
 </div>
 
 <?php if (empty($project['entries'])): ?>
 <div class="empty-state" style="padding:48px 24px;">
     <div class="empty-icon"><i class="fa-solid fa-timeline"></i></div>
-    <p style="color:var(--dim);font-size:0.875rem;margin:0;">Belum ada sesi. Mulai timer dari dashboard.</p>
+    <p style="color:var(--dim);font-size:0.875rem;margin:0 0 16px 0;">Belum ada sesi. Mulai timer dari dashboard atau catat manual.</p>
+    <a href="<?= base_url('sessions/create?project_id=' . $project['id']) ?>" class="btn btn-primary btn-sm">
+        <i class="fa-solid fa-plus"></i>Tambah sesi manual
+    </a>
 </div>
 <?php else: ?>
 <div style="display:flex;flex-direction:column;gap:6px;">

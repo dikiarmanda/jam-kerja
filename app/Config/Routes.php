@@ -21,6 +21,10 @@ $routes->post('/timer/start/(:num)', 'Timer::start/$1');
 $routes->post('/timer/stop/(:num)', 'Timer::stop/$1');
 $routes->get('/timer/status', 'Timer::status');
 
+$routes->get('/sessions', 'Sessions::index');
+$routes->get('/sessions/create', 'Sessions::create');
+$routes->get('/projects/(:num)/sessions/create', 'Sessions::create/$1');
+$routes->post('/sessions', 'Sessions::store');
 $routes->get('/sessions/(:num)/edit', 'Sessions::edit/$1');
 $routes->post('/sessions/(:num)/update', 'Sessions::update/$1');
 $routes->post('/sessions/(:num)/delete', 'Sessions::delete/$1');

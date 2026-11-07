@@ -16,13 +16,93 @@ class Sessions extends BaseController
         $this->projectModel   = new ProjectModel();
     }
 
+    public function index()
+    {
+        $projectId = (int)$this->request->getGet('project_id') ?: null;
+        $projects  = $this->projectModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
+        $entries   = $this->timeEntryModel->getEntriesWithProject($projectId);
+
+        return view('sessions/index', [
+            'entries'           => $entries,
+            'projects'          => $projects,
+            'selectedProjectId' => $projectId,
+        ]);
+    }
+
+    public function create(?int $projectId = null)
+    {
+        $projectId = $projectId ?: ((int)$this->request->getGet('project_id') ?: null);
+        $projects  = $this->projectModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
+
+        if (empty($projects)) {
+            return redirect()->to('/projects/create')->with('error', 'Buat proyek terlebih dahulu sebelum mencatat sesi.');
+        }
+
+        return view('sessions/create', [
+            'projects'          => $projects,
+            'selectedProjectId' => $projectId,
+        ]);
+    }
+
+    public function store()
+    {
+        $projectId = (int)$this->request->getPost('project_id');
+        $startedAt = $this->request->getPost('started_at');
+        $endedAt   = $this->request->getPost('ended_at');
+        $note      = trim((string)$this->request->getPost('note'));
+
+        $project = $this->projectModel->find($projectId);
+        if (!$project) {
+            return redirect()->back()->withInput()->with('error', 'Pilih proyek yang valid.');
+        }
+
+        if (!$startedAt || !strtotime($startedAt)) {
+            return redirect()->back()->withInput()->with('error', 'Waktu mulai wajib diisi.');
+        }
+
+        $formattedEndedAt = null;
+        $duration         = null;
+
+        if ($endedAt) {
+            if (!strtotime($endedAt)) {
+                return redirect()->back()->withInput()->with('error', 'Format waktu selesai tidak valid.');
+            }
+            if (strtotime($endedAt) <= strtotime($startedAt)) {
+                return redirect()->back()->withInput()->with('error', 'Waktu selesai harus setelah waktu mulai.');
+            }
+            $duration         = strtotime($endedAt) - strtotime($startedAt);
+            $formattedEndedAt = date('Y-m-d H:i:s', strtotime($endedAt));
+        } else {
+            $active = $this->timeEntryModel->getActiveEntry();
+            if ($active) {
+                return redirect()->back()->withInput()->with('error', 'Sudah ada timer aktif yang sedang berjalan. Mohon isi waktu selesai.');
+            }
+        }
+
+        $this->timeEntryModel->insert([
+            'project_id'       => $projectId,
+            'started_at'       => date('Y-m-d H:i:s', strtotime($startedAt)),
+            'ended_at'         => $formattedEndedAt,
+            'duration_seconds' => $duration,
+            'note'             => $note ?: null,
+        ]);
+
+        return redirect()->to('/projects/' . $projectId)->with('success', 'Sesi kerja manual berhasil ditambahkan.');
+    }
+
     public function edit(int $id)
     {
         $entry = $this->timeEntryModel->find($id);
         if (!$entry) throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
 
-        $project = $this->projectModel->find($entry['project_id']);
-        return view('sessions/edit', ['entry' => $entry, 'project' => $project]);
+        $projects = $this->projectModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
+        $project  = $this->projectModel->find($entry['project_id']);
+
+        return view('sessions/edit', [
+            'entry'    => $entry,
+            'project'  => $project,
+            'projects' => $projects,
+        ]);
     }
 
     public function update(int $id)
@@ -30,27 +110,48 @@ class Sessions extends BaseController
         $entry = $this->timeEntryModel->find($id);
         if (!$entry) throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
 
-        $startedAt = $this->request->getPost('started_at');
-        $endedAt   = $this->request->getPost('ended_at');
-        $note      = $this->request->getPost('note');
-
-        if ($endedAt && strtotime($endedAt) <= strtotime($startedAt)) {
-            return redirect()->back()->with('error', 'Waktu selesai harus setelah waktu mulai.');
+        $projectId = (int)($this->request->getPost('project_id') ?: $entry['project_id']);
+        $project   = $this->projectModel->find($projectId);
+        if (!$project) {
+            return redirect()->back()->withInput()->with('error', 'Pilih proyek yang valid.');
         }
 
-        $duration = null;
+        $startedAt = $this->request->getPost('started_at');
+        $endedAt   = $this->request->getPost('ended_at');
+        $note      = trim((string)$this->request->getPost('note'));
+
+        if (!$startedAt || !strtotime($startedAt)) {
+            return redirect()->back()->withInput()->with('error', 'Waktu mulai wajib diisi.');
+        }
+
+        $formattedEndedAt = null;
+        $duration         = null;
+
         if ($endedAt) {
-            $duration = strtotime($endedAt) - strtotime($startedAt);
+            if (!strtotime($endedAt)) {
+                return redirect()->back()->withInput()->with('error', 'Format waktu selesai tidak valid.');
+            }
+            if (strtotime($endedAt) <= strtotime($startedAt)) {
+                return redirect()->back()->withInput()->with('error', 'Waktu selesai harus setelah waktu mulai.');
+            }
+            $duration         = strtotime($endedAt) - strtotime($startedAt);
+            $formattedEndedAt = date('Y-m-d H:i:s', strtotime($endedAt));
+        } else {
+            $active = $this->timeEntryModel->where('id !=', $id)->where('ended_at IS NULL', null, false)->first();
+            if ($active) {
+                return redirect()->back()->withInput()->with('error', 'Sudah ada timer lain yang sedang berjalan.');
+            }
         }
 
         $this->timeEntryModel->update($id, [
-            'started_at'       => $startedAt,
-            'ended_at'         => $endedAt ?: null,
+            'project_id'       => $projectId,
+            'started_at'       => date('Y-m-d H:i:s', strtotime($startedAt)),
+            'ended_at'         => $formattedEndedAt,
             'duration_seconds' => $duration,
-            'note'             => $note,
+            'note'             => $note ?: null,
         ]);
 
-        return redirect()->to('/projects/' . $entry['project_id'])->with('success', 'Sesi berhasil diperbarui.');
+        return redirect()->to('/projects/' . $projectId)->with('success', 'Sesi berhasil diperbarui.');
     }
 
     public function delete(int $id)
@@ -61,6 +162,6 @@ class Sessions extends BaseController
         $projectId = $entry['project_id'];
         $this->timeEntryModel->delete($id);
 
-        return redirect()->to('/projects/' . $projectId)->with('success', 'Sesi berhasil dihapus.');
+        return redirect()->back()->with('success', 'Sesi berhasil dihapus.');
     }
 }
