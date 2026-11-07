@@ -7,97 +7,192 @@ $value       = calc_value($totalSec, (int)$project['hourly_rate']);
 $activeEntry = $project['active_entry'] ?? null;
 ?>
 
-<div style="margin-bottom:28px;">
-    <a href="<?= base_url('/') ?>" class="back-link" style="margin-bottom:16px;display:inline-flex;">
-        <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i>Semua proyek
+<!-- Back link -->
+<div class="mb-5">
+    <a href="<?= base_url('/') ?>" class="back-link">
+        <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i>
+        <span>Kembali ke semua proyek</span>
     </a>
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-            <h1 style="font-size:1.375rem;font-weight:600;color:var(--text);line-height:1.3;"><?= esc($project['name']) ?></h1>
+</div>
+
+<!-- Project Header Card -->
+<div class="card p-6 mb-8" style="border-radius:16px;">
+    <div class="flex flex-col md:flex-row md:items-start justify-between gap-5">
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 flex-wrap mb-2">
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight m-0" style="color:var(--text);">
+                    <?= esc($project['name']) ?>
+                </h1>
+                <?php if ($activeEntry): ?>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style="background:var(--green-subtle);border:1px solid var(--green-border);color:var(--green-text);">
+                    <span class="pulse-dot"></span>
+                    <span>TIMER AKTIF</span>
+                </div>
+                <?php endif; ?>
+            </div>
+
             <?php if ($project['client']): ?>
-            <div style="font-size:0.875rem;color:var(--dim);margin-top:3px;"><?= esc($project['client']) ?></div>
+            <div class="flex items-center gap-2 text-sm mb-3" style="color:var(--text-muted);">
+                <i class="fa-regular fa-building" style="font-size:0.8125rem;"></i>
+                <span class="font-medium"><?= esc($project['client']) ?></span>
+            </div>
             <?php endif; ?>
+
+            <?php if (!empty($project['description'])): ?>
+            <p class="text-sm mt-2 mb-3 leading-relaxed" style="color:var(--text-muted);max-width:700px;">
+                <?= nl2br(esc($project['description'])) ?>
+            </p>
+            <?php endif; ?>
+
             <?php if (!empty($project['tags'])): ?>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;">
+            <div class="flex gap-1.5 flex-wrap mt-3">
                 <?php foreach ($project['tags'] as $tag): ?>
-                <span class="tag-pill"><?= esc($tag['name']) ?></span>
+                <span class="tag-pill">
+                    <i class="fa-solid fa-tag" style="font-size:0.625rem;"></i>
+                    <?= esc($tag['name']) ?>
+                </span>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
         </div>
-        <a href="<?= base_url('projects/' . $project['id'] . '/edit') ?>" class="btn btn-ghost">
-            <i class="fa-solid fa-pen-to-square"></i>Edit proyek
-        </a>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <?php if ($activeEntry): ?>
+            <form method="POST" action="<?= base_url('timer/stop/' . $activeEntry['id']) ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-stop">
+                    <i class="fa-solid fa-stop" style="font-size:0.8125rem;"></i>
+                    <span>Berhenti Timer</span>
+                </button>
+            </form>
+            <?php else: ?>
+            <form method="POST" action="<?= base_url('timer/start/' . $project['id']) ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-start">
+                    <i class="fa-solid fa-play" style="font-size:0.8125rem;"></i>
+                    <span>Mulai Timer</span>
+                </button>
+            </form>
+            <?php endif; ?>
+
+            <a href="<?= base_url('projects/' . $project['id'] . '/edit') ?>" class="btn btn-ghost">
+                <i class="fa-solid fa-pen-to-square" style="font-size:0.8125rem;"></i>
+                <span>Edit Proyek</span>
+            </a>
+        </div>
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:36px;">
+<!-- Stat Cards Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-9">
     <div class="stat-card">
-        <div class="stat-label"><i class="fa-regular fa-clock" style="margin-right:5px;"></i>Total waktu</div>
-        <div class="stat-value" style="font-size:1.625rem;"><?= format_duration($totalSec) ?></div>
+        <div class="stat-label">
+            <i class="fa-regular fa-clock" style="font-size:0.8125rem;color:var(--accent);"></i>
+            <span>Total Waktu</span>
+        </div>
+        <div class="stat-value text-2xl" id="project-detail-total"
+             data-total-seconds="<?= $totalSec ?>"
+             data-rate="<?= (int)$project['hourly_rate'] ?>">
+            <?= format_duration($totalSec) ?>
+        </div>
     </div>
+
     <div class="stat-card">
-        <div class="stat-label"><i class="fa-solid fa-coins" style="margin-right:5px;"></i>Rate per jam</div>
-        <div class="stat-value" style="font-size:1.125rem;"><?= format_rupiah((int)$project['hourly_rate']) ?></div>
+        <div class="stat-label">
+            <i class="fa-solid fa-coins" style="font-size:0.8125rem;color:var(--amber);"></i>
+            <span>Rate Per Jam</span>
+        </div>
+        <div class="stat-value text-xl">
+            <?= format_rupiah((int)$project['hourly_rate']) ?>
+        </div>
     </div>
-    <div class="stat-card" style="border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.05);">
-        <div class="stat-label"><i class="fa-solid fa-sack-dollar" style="margin-right:5px;"></i>Estimasi nilai</div>
-        <div class="stat-value" style="font-size:1.125rem;color:var(--accent);"><?= format_rupiah($value) ?></div>
+
+    <div class="stat-card" style="background:var(--accent-subtle);border-color:var(--accent-border);">
+        <div class="stat-label" style="color:var(--accent-text);">
+            <i class="fa-solid fa-sack-dollar" style="font-size:0.8125rem;"></i>
+            <span>Estimasi Nilai</span>
+        </div>
+        <div class="stat-value text-xl" id="project-detail-value" style="color:var(--accent-text);">
+            <?= format_rupiah($value) ?>
+        </div>
     </div>
 </div>
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div style="display:flex;align-items:center;gap:10px;">
-        <h2 style="font-size:0.9375rem;font-weight:600;color:var(--text);margin:0;">Riwayat sesi</h2>
-        <span style="font-size:0.8125rem;color:var(--dim);"><?= count($project['entries']) ?> sesi</span>
+<!-- Sessions Section Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+    <div class="flex items-center gap-2.5">
+        <h2 class="text-lg font-bold tracking-tight m-0" style="color:var(--text);">Riwayat Sesi Kerja</h2>
+        <span class="badge"><?= count($project['entries']) ?> sesi</span>
     </div>
     <a href="<?= base_url('sessions/create?project_id=' . $project['id']) ?>" class="btn btn-ghost btn-sm">
-        <i class="fa-solid fa-plus"></i>Tambah sesi manual
+        <i class="fa-solid fa-plus" style="font-size:0.75rem;"></i>
+        <span>Tambah Sesi Manual</span>
     </a>
 </div>
 
+<!-- Sessions List -->
 <?php if (empty($project['entries'])): ?>
 <div class="empty-state" style="padding:48px 24px;">
     <div class="empty-icon"><i class="fa-solid fa-timeline"></i></div>
-    <p style="color:var(--dim);font-size:0.875rem;margin:0 0 16px 0;">Belum ada sesi. Mulai timer dari dashboard atau catat manual.</p>
+    <h3 class="text-base font-semibold mb-1" style="color:var(--text);">Belum Ada Sesi</h3>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0 0 20px 0;">Mulai timer atau catat sesi manual pekerjaan Anda.</p>
     <a href="<?= base_url('sessions/create?project_id=' . $project['id']) ?>" class="btn btn-primary btn-sm">
-        <i class="fa-solid fa-plus"></i>Tambah sesi manual
+        <i class="fa-solid fa-plus"></i>Tambah Sesi Manual
     </a>
 </div>
 <?php else: ?>
-<div style="display:flex;flex-direction:column;gap:6px;">
+<div class="flex flex-col gap-2.5">
     <?php foreach ($project['entries'] as $entry): ?>
     <?php $isRunning = $entry['ended_at'] === null; ?>
     <div class="session-row <?= $isRunning ? 'running' : '' ?>">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div class="flex items-center gap-3 sm:gap-5 flex-wrap min-w-0 flex-1">
             <?php if ($isRunning): ?>
-            <div style="display:flex;align-items:center;gap:6px;">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold" style="background:var(--green-subtle);border:1px solid var(--green-border);color:var(--green-text);">
                 <span class="pulse-dot"></span>
-                <span style="font-size:0.6875rem;color:var(--green);font-weight:600;">BERJALAN</span>
+                <span>BERJALAN</span>
             </div>
             <?php endif; ?>
-            <div style="display:flex;align-items:center;gap:5px;">
-                <span style="font-size:0.75rem;color:var(--dim);">Mulai</span>
-                <span class="font-mono" style="font-size:0.8125rem;color:var(--text);"><?= date('d/m/Y H:i', strtotime($entry['started_at'])) ?></span>
+
+            <div class="flex items-center gap-2 text-xs sm:text-sm">
+                <span style="color:var(--text-dim);font-weight:500;">Mulai</span>
+                <span class="font-mono font-medium" style="color:var(--text);">
+                    <?= date('d M Y, H:i', strtotime($entry['started_at'])) ?>
+                </span>
             </div>
+
             <?php if (!$isRunning): ?>
-            <div style="display:flex;align-items:center;gap:5px;">
-                <span style="font-size:0.75rem;color:var(--dim);">Selesai</span>
-                <span class="font-mono" style="font-size:0.8125rem;color:var(--text);"><?= date('d/m/Y H:i', strtotime($entry['ended_at'])) ?></span>
+            <div class="flex items-center gap-2 text-xs sm:text-sm">
+                <span style="color:var(--text-dim);font-weight:500;">Selesai</span>
+                <span class="font-mono font-medium" style="color:var(--text);">
+                    <?= date('d M Y, H:i', strtotime($entry['ended_at'])) ?>
+                </span>
             </div>
-            <span class="font-mono" style="font-size:0.9375rem;font-weight:600;color:var(--text);"><?= format_duration((int)$entry['duration_seconds']) ?></span>
+
+            <div class="font-mono font-bold px-2.5 py-0.5 rounded text-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--text);">
+                <?= format_duration((int)$entry['duration_seconds']) ?>
+            </div>
+            <?php else: ?>
+            <span class="font-mono font-bold px-2.5 py-0.5 rounded text-sm text-green-600 dark:text-green-400" id="running-detail-entry" data-started="<?= $entry['started_at'] ?>">
+                <?= format_duration(time() - strtotime($entry['started_at'])) ?>
+            </span>
             <?php endif; ?>
-            <?php if ($entry['note']): ?>
-            <span style="font-size:0.8125rem;color:var(--dim);font-style:italic;"><?= esc($entry['note']) ?></span>
+
+            <?php if (!empty($entry['note'])): ?>
+            <div class="flex items-center gap-1.5 text-xs text-muted truncate max-w-md" style="color:var(--text-muted);">
+                <i class="fa-regular fa-comment-dots" style="font-size:0.75rem;color:var(--text-dim);"></i>
+                <span class="truncate italic">&ldquo;<?= esc($entry['note']) ?>&rdquo;</span>
+            </div>
             <?php endif; ?>
         </div>
-        <div style="display:flex;gap:6px;">
-            <a href="<?= base_url('sessions/' . $entry['id'] . '/edit') ?>" class="btn btn-ghost btn-sm btn-icon" title="Edit sesi">
+
+        <div class="flex items-center gap-1.5 shrink-0">
+            <a href="<?= base_url('sessions/' . $entry['id'] . '/edit') ?>" class="btn btn-ghost btn-icon btn-sm" title="Edit sesi">
                 <i class="fa-solid fa-pen-to-square"></i>
             </a>
-            <form method="POST" action="<?= base_url('sessions/' . $entry['id'] . '/delete') ?>" onsubmit="return confirm('Hapus sesi ini?')">
+            <form method="POST" action="<?= base_url('sessions/' . $entry['id'] . '/delete') ?>" onsubmit="return confirm('Hapus sesi ini secara permanen?')">
                 <?= csrf_field() ?>
-                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Hapus sesi">
+                <button type="submit" class="btn btn-danger btn-icon btn-sm" title="Hapus sesi">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             </form>
@@ -107,4 +202,46 @@ $activeEntry = $project['active_entry'] ?? null;
 </div>
 <?php endif; ?>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<?php if ($activeEntry): ?>
+<script>
+(function() {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function formatDuration(s) {
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return pad(h) + ':' + pad(m) + ':' + pad(sec);
+    }
+
+    const runningEl = document.getElementById('running-detail-entry');
+    const totalEl = document.getElementById('project-detail-total');
+    const valueEl = document.getElementById('project-detail-value');
+
+    let baseSeconds = totalEl ? parseInt(totalEl.dataset.totalSeconds, 10) : 0;
+    const rate = totalEl ? parseInt(totalEl.dataset.rate, 10) : 0;
+    const startedTime = runningEl ? new Date("<?= date('Y-m-d\TH:i:s', strtotime($activeEntry['started_at'])) ?>").getTime() : null;
+
+    if (startedTime) {
+        setInterval(function() {
+            const now = Date.now();
+            const sessionSec = Math.floor((now - startedTime) / 1000);
+            if (runningEl) {
+                runningEl.textContent = formatDuration(Math.max(0, sessionSec));
+            }
+            if (totalEl) {
+                baseSeconds++;
+                totalEl.textContent = formatDuration(baseSeconds);
+                if (valueEl && rate > 0) {
+                    const val = Math.round((baseSeconds / 3600) * rate);
+                    valueEl.textContent = 'Rp ' + val.toLocaleString('id-ID');
+                }
+            }
+        }, 1000);
+    }
+})();
+</script>
+<?php endif; ?>
 <?= $this->endSection() ?>

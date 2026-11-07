@@ -20,7 +20,10 @@ class Timer extends BaseController
     {
         $project = $this->projectModel->find($projectId);
         if (!$project) {
-            return $this->response->setJSON(['error' => 'Proyek tidak ditemukan'])->setStatusCode(404);
+            if ($this->isJsonRequest()) {
+                return $this->response->setJSON(['error' => 'Proyek tidak ditemukan'])->setStatusCode(404);
+            }
+            return redirect()->back()->with('error', 'Proyek tidak ditemukan.');
         }
 
         $active = $this->timeEntryModel->getActiveEntry();
@@ -34,26 +37,37 @@ class Timer extends BaseController
             'started_at' => $now,
         ]);
 
-        return $this->response->setJSON([
-            'entry_id'   => $entryId,
-            'started_at' => $now,
-            'project_id' => $projectId,
-        ]);
+        if ($this->isJsonRequest()) {
+            return $this->response->setJSON([
+                'entry_id'   => $entryId,
+                'started_at' => $now,
+                'project_id' => $projectId,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Timer berhasil dimulai.');
     }
 
     public function stop(int $entryId)
     {
         $entry = $this->timeEntryModel->find($entryId);
         if (!$entry || $entry['ended_at'] !== null) {
-            return $this->response->setJSON(['error' => 'Sesi tidak ditemukan atau sudah berhenti'])->setStatusCode(400);
+            if ($this->isJsonRequest()) {
+                return $this->response->setJSON(['error' => 'Sesi tidak ditemukan atau sudah berhenti'])->setStatusCode(400);
+            }
+            return redirect()->back()->with('error', 'Sesi tidak ditemukan atau sudah berhenti.');
         }
 
         $this->timeEntryModel->stopEntry($entryId);
         $updated = $this->timeEntryModel->find($entryId);
 
-        return $this->response->setJSON([
-            'duration_seconds' => $updated['duration_seconds'],
-        ]);
+        if ($this->isJsonRequest()) {
+            return $this->response->setJSON([
+                'duration_seconds' => $updated['duration_seconds'],
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Timer berhasil dihentikan.');
     }
 
     public function status()
@@ -71,5 +85,10 @@ class Timer extends BaseController
             'started_at' => $active['started_at'],
             'elapsed'    => $elapsed,
         ]);
+    }
+
+    private function isJsonRequest(): bool
+    {
+        return $this->request->isAJAX() || str_contains($this->request->getHeaderLine('Accept'), 'application/json');
     }
 }
